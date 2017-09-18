@@ -20,6 +20,7 @@ void on_file_open(uv_fs_t *req);
 void on_file_read(uv_fs_t *req);
 
 void on_new_connection(uv_stream_t *server, int status) {
+    fprintf(stderr, "on_new_connection\n");
     if (status == -1) {
         fprintf(stderr, "error on_new_connection");
         uv_close((uv_handle_t*) client, NULL);
@@ -40,11 +41,53 @@ void on_new_connection(uv_stream_t *server, int status) {
 }
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+    fprintf(stderr, "alloc_buffer\n");
     buf->base = (char*) malloc(suggested_size);
     buf->len = suggested_size;
 }
 
+
+int i = 1;
+//static void f1(struct uv__work* w) {
+void f1(uv_work_t* w) {
+    fprintf(stderr, "f1\n");
+    if (i>0) {
+        i--;
+        sleep(10);
+    }
+}
+
+//static void f2(struct uv__work* w, int status) {
+void f2(uv_work_t* w, int status) {
+    fprintf(stderr, "f2\n");
+    uv_write_t *write_req = (uv_write_t *) malloc(sizeof(uv_write_t));
+
+    char *message = (char *)malloc(6);
+    snprintf(message, 6, "helle");
+
+    uv_buf_t buf = uv_buf_init(message, sizeof(message));
+    buf.len = 6;
+    buf.base = message;
+    int buf_count = 1;
+
+    write_req->data = (void*) message;
+
+    uv_write(write_req, (uv_stream_t*) client, &buf, buf_count, on_client_write);
+
+}
+
+void dispatch() {
+    //struct uv__work w;
+    //uv__work_submit(uv_default_loop(), &w, f1, f2);
+    //int uv_queue_work(uv_loop_t* loop, uv_work_t* req, uv_work_cb work_cb, uv_after_work_cb after_work_cb)
+    uv_work_t w;
+    uv_queue_work(uv_default_loop(), &w, f1, f2);
+}
+
 void on_client_read(uv_stream_t *_client, ssize_t nread, uv_buf_t *buf) {
+    fprintf(stderr, "on_client_read\n");
+    // other client can not be accepted again
+    // sleep(3600);
     if (nread == -1) {
         fprintf(stderr, "error on_client_read");
         uv_close((uv_handle_t*) client, NULL);
@@ -54,24 +97,30 @@ void on_client_read(uv_stream_t *_client, ssize_t nread, uv_buf_t *buf) {
     char *filename = buf->base;
     int mode = 0;
 
+    //test threadpool
+    dispatch();
+    return;
+
     uv_fs_open(uv_default_loop(), &open_req, filename, O_RDONLY, mode, on_file_open);
 }
 
 void on_client_write(uv_write_t *req, int status) {
+    fprintf(stderr, "on_client_write\n");
     if (status == -1) {
         fprintf(stderr, "error on_client_write");
         uv_close((uv_handle_t*) client, NULL);
         return;
     }
 
-    free(req);
     char *buffer = (char*) req->data;
     free(buffer);
+    free(req);
 
     uv_close((uv_handle_t*) client, NULL);
 }
 
 void on_file_open(uv_fs_t *req) {
+    fprintf(stderr, "on_file_open\n");
     if (req->result == -1) {
         fprintf(stderr, "error on_file_open");
         uv_close((uv_handle_t*) client, NULL);
@@ -89,6 +138,7 @@ void on_file_open(uv_fs_t *req) {
 }
 
 void on_file_read(uv_fs_t *req) {
+    fprintf(stderr, "on_file_read\n");
     // req->result: data length
     if (req->result < 0) {
         fprintf(stderr, "error on_file_read: %s\n", strerror(-req->result));

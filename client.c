@@ -13,6 +13,7 @@ void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 void echo_read(uv_stream_t *server, ssize_t nread, uv_buf_t *buf);
 
 void echo_read(uv_stream_t *server, ssize_t nread, uv_buf_t *buf) {
+    fprintf(stderr, "echo_read\n");
     if (nread == -1) {
         fprintf(stderr, "error echo_read");
         return;
@@ -22,11 +23,13 @@ void echo_read(uv_stream_t *server, ssize_t nread, uv_buf_t *buf) {
 }
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+    fprintf(stderr, "alloc_buffer\n");
     buf->base = (char*) malloc(suggested_size);
     buf->len = suggested_size;
 }
 
 void on_write_end(uv_write_t *req, int status) {
+    fprintf(stderr, "on_write_end\n");
     if (status == -1) {
         fprintf(stderr, "error on_write_end");
         return;
@@ -36,6 +39,7 @@ void on_write_end(uv_write_t *req, int status) {
 }
 
 void on_connect(uv_connect_t *req, int status) {
+    fprintf(stderr, "on_connect\n");
     if (status == -1) {
         fprintf(stderr, "error on_write_end");
         return;
